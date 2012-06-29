@@ -1,0 +1,167 @@
+#!/bin/bash
+declare -a datafrom
+datafrom=(ip138 ip5 x123cha chinaz x114la ip_cn x21andy)
+showcmd=`echo ${datafrom[1]}`
+
+
+###Functions#####
+function ip138(){
+    _URL_IP138='http://ip138.com/ips138.asp?action=2&ip='
+    if [ -z $1 ] ; then 
+       return 1
+    fi
+
+    _URL_CUR=${_URL_IP138}${1}
+
+    _location=`curl -s "${_URL_CUR}" | grep '<ul class="ul1"><li>' |awk  -F'</?li[^>]*?>' '{print $2,$4}' `
+ #awk -F'[><]+' '{print $5}' 
+
+    _location_utf8=`echo $_location | iconv -f gbk -t utf-8 `
+
+    echo $_location_utf8
+}
+function ip5(){
+    _URL_IP5='http://www.ip5.me/index.php'
+    if [ -z $1 ] ; then
+        return 1
+    fi
+    _POST_DATA="s=$1&doit=1"
+    _URL_CUR=$_URL_IP5
+
+    _location=`curl -s -d "${_POST_DATA}" "${_URL_CUR}" | grep '<div id="ip_pos"' | awk -F'</?[^>]*?>' '{print $3}' ` 
+
+    _location_utf8=`echo $_location | iconv -f gbk -t utf-8 `
+
+    echo $_location_utf8
+
+}
+function x123cha(){
+    _URL_123CHA='http://www.123cha.com/ip/?q='
+    if [ -z $1 ] ; then
+        return 1
+    fi
+
+    _URL_CUR=${_URL_123CHA}${1}
+
+    _location=`curl -s "${_URL_CUR}" | grep '<div id="cresult"' | sed -e 's/&nbsp;//g'| awk -F'</?[^>]*?>' '{print $3,$4,$5,$6}' `
+
+    _location_utf8=`echo $_location `
+
+    echo $_location_utf8
+}
+function x21andy(){
+    _URL_21ANDY='http://www.21andy.com/ip/?ip='
+    if [ -z $1 ] ; then
+        return 1
+    fi
+
+    _URL_CUR=${_URL_21ANDY}${1}
+
+    _location=`curl -s "${_URL_CUR}" | grep '<h2>' | awk -F'</?[^>]*?>' '{print $7}' ` 
+
+    _location_utf8=`echo $_location `
+
+    echo $_location_utf8
+}
+function ip_cn(){
+    _URL_IPCN='http://www.ip.cn/getip.php?action=queryip&from=web&ip_url='
+    if [ -z $1 ] ; then
+        return 1
+    fi
+
+    _URL_CUR=${_URL_IPCN}${1}
+
+    _location=`curl -s "${_URL_CUR}" | awk -F'</?[^>]*?>' '{print $5}' `
+
+    _location_utf8=`echo $_location | iconv -f gbk -t utf-8 `
+
+    echo $_location_utf8
+}
+function x114la(){
+    _URL_114LA='http://tool.114la.com/ip/'
+    if [ -z $1 ] ; then
+        return 1
+    fi
+
+    _URL_CUR=${_URL_114LA}${1}
+
+    _location=`curl -s "${_URL_CUR}" |sed -e 's/>/>\n/g' | sed -n -e ' /<table/,/<\/table>/p'  | awk  'BEGIN{FS="<[^>]*>" ;RS="|";}{print $10,$12,$16,$18,$22,$24}'`
+#|sed -e 's/>/>\n/g' | sed -n -e '/^<table/p;/^<\/table>$/p;'  ` #|awk -F'</?[^>]*?>' 'RT ~ /t[hd]/ { print $0}'  ` # | sed -e 's/&nbsp;//g'| awk -F'</?[^>]*?>' '{print $3,$4,$5,$6}' `
+
+    echo $_location
+    _location_utf8=`echo $_location `
+
+    #echo $_location_utf8
+}
+
+function chinaz(){
+    _URL_CHINAZ='http://ip.chinaz.com/?IP='
+
+    if [ -z $1 ] ; then
+        return 1
+    fi
+
+    _URL_CUR=${_URL_CHINAZ}${1}
+
+    _location=`curl -s "${_URL_CUR}" | grep '<strong class="red"' | sed -e 's/\(<strong class="red">\)/\n\\1/g'| tail -n 1 | awk -F'</?[^>]*?>' '{print $2}' | cut -d'>' -f5 ` 
+   #| grep '<span class="info3"' | awk -F'</?[^>]*?>' '{print $5}' `
+
+   # | grep '<div id="cresult"' | sed -e 's/&nbsp;//g'| awk -F'</?[^>]*?>' '{print $3,$4,$5,$6}' `
+    
+    _location_utf8=`echo $_location `
+    
+    echo $_location_utf8
+}
+function iplookup(){
+        while read line;do
+                ip=`echo $line | cut -d: -f1`
+                #_location=`curl -s  "http://ip138.com/ips138.asp?ip=${ip}&action=2" | grep '<ul class="ul1"><li>' |awk -F'[><]+' '{print $5}' `
+                _location=`ip138 $ip`
+                echo $ip $_location
+        done < $1
+}
+
+function usage(){
+    echo "Usage: $0 [OPTION]
+   -i [ip adress]
+   -f [a file]
+"
+}
+function version(){
+    VERSION='0.1.0'
+    AUTHOR='dolfly'
+    COPYRIGHT='Copyright (C) 2002-2010 DOLFLY , Inc. <dolfly@foxmail.com>'
+    echo $0" "${VERSION} 
+    echo $COPYRIGHT
+}
+
+#####MAIN#####
+case $1 in
+-f)
+        shift
+        if [ -r $1 ] ;then
+            iplookup $1
+        else 
+            echo "file $1 not exists." 
+            exit
+        fi
+        
+;;
+-i)
+        shift
+               # _location=`curl -s  "http://ip138.com/ips138.asp?ip=$1&action=2" |grep '<ul class="ul1"><li>' |awk -F'[><]+' '{print $5}'`
+               #_location
+               echo $1 
+               for showcmd in ${datafrom[@]} ;do 
+                   _location=`$showcmd $1` 
+                   echo -e  $showcmd"\t:\t"$_location 
+               done
+        #echo $1 $_location | iconv -f gbk -t utf-8 
+;;
+-v)     
+    version
+    ;;
+*)
+        usage
+;;
+esac
